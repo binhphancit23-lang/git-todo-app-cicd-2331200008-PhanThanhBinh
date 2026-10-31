@@ -4,33 +4,75 @@ describe('TodoService Unit Tests', () => {
     let service;
 
     beforeEach(() => {
-        // Create a new service instance for each test to ensure isolation
+        // TodoService is a singleton, so reset its state between tests.
         service = new TodoService();
-        // This is a bit of a hack to reset the singleton for testing purposes
         service.todos = [];
+        service.observers = [];
     });
 
     test('should add a new todo', () => {
-        // TODO: Call the addTodo method with some text.
-        // Then, assert that the service's todos array has a length of 1.
-        // Assert that the text of the first todo matches the input text.
+        service.addTodo('Buy groceries');
+
+        expect(service.todos).toHaveLength(1);
+        expect(service.todos[0]).toEqual({
+            id: expect.any(Number),
+            text: 'Buy groceries',
+            completed: false
+        });
     });
 
     test('should toggle the completed state of a todo', () => {
-        // TODO: First, add a todo.
-        // Then, get its ID and call the toggleTodoComplete method.
-        // Assert that the 'completed' property of that todo is now true.
-        // Call toggleTodoComplete again and assert that it's false.
+        service.addTodo('Finish assignment');
+        const todoId = service.todos[0].id;
+
+        service.toggleTodoComplete(todoId);
+        expect(service.todos[0].completed).toBe(true);
+
+        service.toggleTodoComplete(todoId);
+        expect(service.todos[0].completed).toBe(false);
     });
 
     test('should remove a todo', () => {
-        // TODO: Add a todo.
-        // Get its ID and call the removeTodo method.
-        // Assert that the service's todos array is now empty (length of 0).
+        service.addTodo('Clean the room');
+        const todoId = service.todos[0].id;
+
+        service.removeTodo(todoId);
+
+        expect(service.todos).toHaveLength(0);
     });
 
     test('should not add a todo if text is empty', () => {
-        // TODO: Call addTodo with an empty string.
-        // Assert that the todos array still has a length of 0.
+        service.addTodo('');
+
+        expect(service.todos).toHaveLength(0);
+    });
+
+    test('should notify observers when a todo is added, toggled, or removed', () => {
+        const snapshots = [];
+        const observer = {
+            update: jest.fn(todos => {
+                snapshots.push(todos.map(todo => ({ ...todo })));
+            })
+        };
+        service.addObserver(observer);
+
+        service.addTodo('Read a book');
+        const todoId = service.todos[0].id;
+        service.toggleTodoComplete(todoId);
+        service.removeTodo(todoId);
+
+        expect(observer.update).toHaveBeenCalledTimes(3);
+        expect(snapshots).toEqual([
+            [{ id: todoId, text: 'Read a book', completed: false }],
+            [{ id: todoId, text: 'Read a book', completed: true }],
+            []
+        ]);
+    });
+
+    test('should return the current todo list', () => {
+        service.addTodo('Review pull request');
+
+        expect(service.getTodos()).toBe(service.todos);
+        expect(service.getTodos()[0].text).toBe('Review pull request');
     });
 });
